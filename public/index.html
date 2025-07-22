@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Go Clustered Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #messages { border: 1px solid #ccc; padding: 10px; min-height: 200px; max-height: 400px; overflow-y: scroll; margin-bottom: 10px; }
+        #messageInput { width: calc(100% - 120px); padding: 8px; }
+        #sendButton { padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Go Clustered Chat</h1>
+
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type your message...">
+    <button id="sendButton">Send</button>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        let ws;
+
+        function connectWebSocket() {
+            // Attempt to connect to the WebSocket server
+            ws = new WebSocket("ws://localhost:8080/ws");
+
+            ws.onopen = function(event) {
+                console.log("WebSocket connected!");
+                messagesDiv.innerHTML += '<p><em>Connected to chat!</em></p>';
+            };
+
+            ws.onmessage = function(event) {
+                messagesDiv.innerHTML += '<p>' + event.data + '</p>';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll to bottom
+            };
+
+            ws.onclose = function(event) {
+                console.log("WebSocket disconnected: ", event.reason);
+                messagesDiv.innerHTML += '<p><em>Disconnected from chat. Reconnecting...</em></p>';
+                // Attempt to reconnect after a short delay
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error("WebSocket error: ", error);
+            };
+        }
+
+        sendButton.onclick = function() {
+            const message = messageInput.value;
+            if (message) {
+                ws.send(message);
+                messageInput.value = ''; // Clear input
+            }
+        };
+
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        // Initial connection
+        connectWebSocket();
+    </script>
+</body>
+</html>
